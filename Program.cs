@@ -1,40 +1,49 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using IDT;
+using IVT;
+using Gaze;
 using System;
 using System.IO;
 
 Console.WriteLine("IDT Test Program");
 
-// Console.Log("Debug output");
-Console.WriteLine("Test");
 
-Fixation.TestStaticMethod();
-Fixation f = new Fixation();
-f.TestMethod();
-
-string path = "./data/";
-string file = "et-2022-04-13-13-25.csv";
-
-StreamReader reader = File.OpenText(path + file);
 string line;
 int lineCount = 0;
 string header;
-while ((line = reader.ReadLine()) != null)
+
+Queue<GazeRecord> gazeRecordQueue = new Queue<GazeRecord>();
+
+string path = "./data/";
+string inFile = "et-2022-04-13-13-25.csv";
+using (StreamReader reader = File.OpenText(path + inFile))
 {
-    lineCount++;
-    if (lineCount == 1)
+    while ((line = reader.ReadLine()) != null)
     {
-        header = line;
-        continue;
+        lineCount++;
+        if (lineCount == 1)
+        {
+            header = line;
+            // Frame;CaptureTime;LogTime;HMDPosition;HMDRotation;GazeStatus;CombinedGazeForward;CombinedGazePosition;InterPupillaryDistanceInMM;LeftEyeStatus;LeftEyeForward;LeftEyePosition;LeftPupilIrisDiameterRatio;LeftPupilDiameterInMM;LeftIrisDiameterInMM;RightEyeStatus;RightEyeForward;RightEyePosition;RightPupilIrisDiameterRatio;RightPupilDiameterInMM;RightIrisDiameterInMM;FocusDistance;FocusStability;FocusItem
+            continue;
+        }
+
+        GazeRecord gazeRecord = new GazeRecord(line);
+        gazeRecordQueue.Enqueue(gazeRecord);
+        // if (lineCount > 3000) break;
     }
+}
 
-    // Frame;CaptureTime;LogTime;HMDPosition;HMDRotation;GazeStatus;CombinedGazeForward;CombinedGazePosition;InterPupillaryDistanceInMM;LeftEyeStatus;LeftEyeForward;LeftEyePosition;LeftPupilIrisDiameterRatio;LeftPupilDiameterInMM;LeftIrisDiameterInMM;RightEyeStatus;RightEyeForward;RightEyePosition;RightPupilIrisDiameterRatio;RightPupilDiameterInMM;RightIrisDiameterInMM;FocusDistance;FocusStability;FocusItem
-    string[] items = line.Split(';');
-    long Frame = long.Parse(items[0]);
-    long CaputureTime = long.Parse(items[1]);
-    long LogTime = long.Parse(items[2]);
-    string HMDPosition = items[3];
 
-    Console.WriteLine(Frame.ToString() + " " + CaputureTime.ToString() + " " + HMDPosition);
-    if (lineCount == 10) break;
+Ivt ivt = new Ivt();
+ivt.ProcessRecordQueue(gazeRecordQueue);
+
+string outFile = $"gazeEvents-{inFile.Substring(0, inFile.Length - 4)}.csv";
+using (StreamWriter sw = new StreamWriter(path + outFile))
+{
+    sw.WriteLine("start;duration;type;");
+    foreach (GazeEvent ge in ivt.eventList)
+    {
+        sw.WriteLine($"{ge.start};{ge.duration};{ge.type}");
+    }
 }
