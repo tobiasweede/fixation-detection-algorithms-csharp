@@ -44,6 +44,8 @@ using (StreamWriter sw = new StreamWriter(path + outFile))
     sw.WriteLine("start;duration;type;");
     foreach (GazeEvent ge in ivt.eventList)
     {
-        sw.WriteLine($"{ge.start};{ge.duration};{ge.type}");
+        string result = $"{ge.start};{ge.duration};{ge.type}";
+        Console.WriteLine(result);
+        sw.WriteLine(result);
     }
 }

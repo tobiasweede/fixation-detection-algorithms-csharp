@@ -40,8 +40,9 @@ namespace Gaze
         {
             type = EventType.Init;
         }
-        public GazeEvent(EventType _type)
+        public GazeEvent(long _start, EventType _type)
         {
+            start = _start;
             type = _type;
         }
     }

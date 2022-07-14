@@ -22,7 +22,7 @@ namespace IVT
         {
             if (currentGazeEvent == null)
             { // New event
-                currentGazeEvent = new GazeEvent(EventType.Init);
+                currentGazeEvent = new GazeEvent(currentGaze.captureTime, EventType.Init);
                 currentGazeEvent.start = currentGaze.captureTime;
                 lastGaze = currentGaze;
                 return;
@@ -45,7 +45,7 @@ namespace IVT
                         if (currentGazeEvent.type != EventType.Saccade)
                         {
                             eventList.Add(currentGazeEvent);
-                            currentGazeEvent = new GazeEvent(EventType.Saccade);
+                            currentGazeEvent = new GazeEvent(currentGaze.captureTime, EventType.Saccade);
                             currentGazeEvent.velocity = velocity;
                         }
                     }
@@ -58,7 +58,7 @@ namespace IVT
                         if (currentGazeEvent.type != EventType.Fixation)
                         {
                             eventList.Add(currentGazeEvent);
-                            currentGazeEvent = new GazeEvent(EventType.Fixation);
+                            currentGazeEvent = new GazeEvent(currentGaze.captureTime, EventType.Fixation);
                         }
                     }
 
@@ -68,7 +68,7 @@ namespace IVT
                     if (currentGazeEvent.type != EventType.Init)
                     {
                         eventList.Add(currentGazeEvent);
-                        currentGazeEvent = new GazeEvent(EventType.Blink);
+                        currentGazeEvent = new GazeEvent(currentGaze.captureTime, EventType.Blink);
                     }
                 }
             }
@@ -80,7 +80,7 @@ namespace IVT
                     {
                         currentGazeEvent.type = EventType.Blink;
                         eventList.Add(currentGazeEvent);
-                        currentGazeEvent = new GazeEvent(EventType.Init);
+                        currentGazeEvent = new GazeEvent(currentGaze.captureTime, EventType.Init);
                     }
                 }
             }
