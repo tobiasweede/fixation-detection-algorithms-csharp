@@ -25,25 +25,32 @@ namespace Gaze
     }
     public enum EventType
     {
-        Init,
+        Init, // At trail start
+        Undefined, // After blink
         Blink,
         Fixation,
         Saccade
     }
     public class GazeEvent
     {
-        public EventType type;
+        public EventType eventType;
         public long start;
         public float duration;
         public float velocity;
+        public List<float> velocityList;
         public GazeEvent()
         {
-            type = EventType.Init;
+            start = long.MaxValue;
+            eventType = EventType.Init;
+            velocity = -1;
+            velocityList = new();
         }
         public GazeEvent(long _start, EventType _type)
         {
             start = _start;
-            type = _type;
+            eventType = _type;
+            velocity = -1;
+            velocityList = new();
         }
     }
 
@@ -56,7 +63,10 @@ namespace Gaze
 
         public GazeRecord()
         {
+            captureTime = long.MaxValue;
             valid = false;
+            hmdPosition = new Vector3(0, 0, 0);
+            gazeDirection = new Vector3(0, 0, 0);
         }
 
         public GazeRecord(string csvString)

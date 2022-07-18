@@ -3,10 +3,12 @@ namespace IVT
 {
     public class Ivt
     {
+        private float minBlinkDurationThreshold = 0.05f; // 1 Sec / 200 Hz = 0.005 --> 0.05 sec TH means min. 10 invalid samples
+        private float minFixationDurationThreshold = 0.1f; // 100ms (see Homquist)
         private float velocityThreshold = 30.0f; // 50°/s (see Holmquist p. 231)
         GazeEvent? currentGazeEvent = null;
         public List<GazeEvent> eventList = new List<GazeEvent>();
-        GazeRecord lastGaze = new GazeRecord();
+        GazeRecord lastGazeRecord = new GazeRecord();
 
         public void ProcessRecordQueue(Queue<GazeRecord> gazeRecordQueue)
         {
@@ -18,73 +20,96 @@ namespace IVT
             }
         }
 
-        void ProcessGazeEvent(GazeRecord currentGaze)
+        void ProcessGazeEvent(GazeRecord currentGazeRecord)
         {
             if (currentGazeEvent == null)
-            { // New event
-                currentGazeEvent = new GazeEvent(currentGaze.captureTime, EventType.Init);
-                currentGazeEvent.start = currentGaze.captureTime;
-                lastGaze = currentGaze;
+            { // Create new event object on start 
+                currentGazeEvent = new GazeEvent(currentGazeRecord.captureTime, EventType.Init);
+                currentGazeEvent.start = currentGazeRecord.captureTime;
+                lastGazeRecord = currentGazeRecord;
                 return;
             }
 
-            float timeDeltaInSec = GazeFunctions.TimeDeltaInSec(lastGaze, currentGaze);
+            float timeDeltaInSec = GazeFunctions.TimeDeltaInSec(lastGazeRecord, currentGazeRecord);
             currentGazeEvent.duration += timeDeltaInSec;
 
-            if (lastGaze.valid)
+            if (lastGazeRecord.valid)
             {
-                if (currentGaze.valid)
+                if (currentGazeRecord.valid)
                 {
-                    float velocity = GazeFunctions.GetAngularVelocity(lastGaze, currentGaze, timeDeltaInSec);
+                    float velocity = GazeFunctions.GetAngularVelocity(lastGazeRecord, currentGazeRecord, timeDeltaInSec);
                     if (velocity > velocityThreshold)
                     { // Saccade
-                        if (currentGazeEvent.type == EventType.Init)
+                        if (currentGazeEvent.eventType == EventType.Init)
                         {
-                            currentGazeEvent.type = EventType.Saccade;
+                            currentGazeEvent.start = currentGazeRecord.captureTime;
+                            currentGazeEvent.duration = timeDeltaInSec;
+                            currentGazeEvent.eventType = EventType.Saccade;
                         }
-                        if (currentGazeEvent.type != EventType.Saccade)
+                        else if (currentGazeEvent.eventType == EventType.Undefined)
                         {
-                            eventList.Add(currentGazeEvent);
-                            currentGazeEvent = new GazeEvent(currentGaze.captureTime, EventType.Saccade);
-                            currentGazeEvent.velocity = velocity;
+                            currentGazeEvent.eventType = EventType.Saccade;
                         }
+                        if (currentGazeEvent.eventType != EventType.Saccade)
+                        {
+                            AddEvent(currentGazeEvent);
+                            currentGazeEvent = new GazeEvent(currentGazeRecord.captureTime, EventType.Saccade);
+                        }
+                        currentGazeEvent.velocityList.Add(velocity);
                     }
                     else
                     { // Fixation
-                        if (currentGazeEvent.type == EventType.Init)
+                        if (currentGazeEvent.eventType == EventType.Init)
                         {
-                            currentGazeEvent.type = EventType.Fixation;
+                            currentGazeEvent.start = currentGazeRecord.captureTime;
+                            currentGazeEvent.duration = timeDeltaInSec;
+                            currentGazeEvent.eventType = EventType.Fixation;
                         }
-                        if (currentGazeEvent.type != EventType.Fixation)
+                        else if (currentGazeEvent.eventType == EventType.Undefined)
                         {
-                            eventList.Add(currentGazeEvent);
-                            currentGazeEvent = new GazeEvent(currentGaze.captureTime, EventType.Fixation);
+                            currentGazeEvent.eventType = EventType.Fixation;
+                        }
+                        if (currentGazeEvent.eventType != EventType.Fixation)
+                        {
+                            AddEvent(currentGazeEvent);
+                            currentGazeEvent = new GazeEvent(currentGazeRecord.captureTime, EventType.Fixation);
                         }
                     }
-
                 }
                 else
-                { // currentGaze invalid
-                    if (currentGazeEvent.type != EventType.Init)
-                    {
-                        eventList.Add(currentGazeEvent);
-                        currentGazeEvent = new GazeEvent(currentGaze.captureTime, EventType.Blink);
-                    }
+                {
+                    // last valid and current invalid
+                    // begin of a blink 
+                    if (currentGazeEvent.eventType != EventType.Init && currentGazeEvent.eventType != EventType.Undefined)
+                        AddEvent(currentGazeEvent);
+                    currentGazeEvent = new GazeEvent(currentGazeRecord.captureTime, EventType.Undefined);
                 }
             }
             else
             {  // lastGaze invalid
-                if (currentGaze.valid)
+                if (currentGazeRecord.valid)
                 {
-                    if (currentGazeEvent.type != EventType.Init)
+                    if (currentGazeEvent.eventType != EventType.Init)
                     {
-                        currentGazeEvent.type = EventType.Blink;
-                        eventList.Add(currentGazeEvent);
-                        currentGazeEvent = new GazeEvent(currentGaze.captureTime, EventType.Init);
+                        if (currentGazeEvent.duration > minBlinkDurationThreshold)
+                        {
+                            currentGazeEvent.eventType = EventType.Blink;
+                            eventList.Add(currentGazeEvent);
+                        }
+                        currentGazeEvent = new GazeEvent(currentGazeRecord.captureTime, EventType.Undefined); // type unknown
                     }
                 }
             }
-            lastGaze = currentGaze;
+            lastGazeRecord = currentGazeRecord;
+        }
+
+        void AddEvent(GazeEvent currentGazeEvent)
+        {
+            if (currentGazeEvent.eventType == EventType.Fixation && currentGazeEvent.duration < minFixationDurationThreshold)
+                return;
+            if (currentGazeEvent.eventType == EventType.Saccade)
+                currentGazeEvent.velocity = currentGazeEvent.velocityList.Average();
+            eventList.Add(currentGazeEvent);
         }
 
     }

@@ -5,7 +5,7 @@ using Gaze;
 using System;
 using System.IO;
 
-Console.WriteLine("IDT Test Program");
+Console.WriteLine("Fixation Algorithm Test Program");
 
 
 string line;
@@ -41,10 +41,10 @@ ivt.ProcessRecordQueue(gazeRecordQueue);
 string outFile = $"gazeEvents-{inFile.Substring(0, inFile.Length - 4)}.csv";
 using (StreamWriter sw = new StreamWriter(path + outFile))
 {
-    sw.WriteLine("start;duration;type;");
+    sw.WriteLine("start;duration;type;velocity;");
     foreach (GazeEvent ge in ivt.eventList)
     {
-        string result = $"{ge.start};{ge.duration};{ge.type}";
+        string result = $"{ge.start};{ge.duration};{ge.eventType};{ge.velocity}";
         Console.WriteLine(result);
         sw.WriteLine(result);
     }
