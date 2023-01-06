@@ -5,7 +5,7 @@ namespace IVT
     {
         private float minBlinkDurationThreshold = 0.05f; // 1 Sec / 200 Hz = 0.005 --> 0.05 sec TH means min. 10 invalid samples
         private float minFixationDurationThreshold = 0.1f; // 100ms (see Homquist)
-        private float velocityThreshold = 30.0f; // 50°/s (see Holmquist p. 231)
+        private float velocityThreshold = 50.0f; // 50°/s (see Holmquist p. 231)
         GazeEvent? currentGazeEvent = null;
         public List<GazeEvent> eventList = new List<GazeEvent>();
         GazeRecord lastGazeRecord = new GazeRecord();
